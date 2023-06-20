@@ -1,0 +1,35 @@
+package {{ .Pkg }}
+
+import (
+    _ "embed"
+    "eflux-go-cassandra/generated/model"
+)
+
+{{- range .TreeNode.Tables}}
+//go:embed scripts/create-{{ .Name }}.cql
+var create{{ .Name | tc }}Script string
+{{- end}}
+
+type By{{ .Name | tc }} struct {
+    {{ .Name | tc }} model.{{ .Name | tc }}
+    {{- range .TreeNode.Peers }}
+    {{ . | tc }} *model.{{ . | tc }}
+    {{- end }}
+    {{- range .TreeNode.Children }}
+    {{ . | tc }}s []model.{{ . | tc }}
+    {{- end }}
+}
+
+func Create{{ .Name | tc }}Tables() error {
+    {{- range .TreeNode.Tables}}
+    println(create{{ .Name | tc }}Script)
+    {{- end}}
+    return nil
+}
+
+func Save{{ .Name | tc }}({{ .Name}} model.{{ .Name | tc }}) error {
+    {{- range .TreeNode.Tables}}
+    println("save to {{ .Name }}")
+    {{- end}}
+    return nil
+}

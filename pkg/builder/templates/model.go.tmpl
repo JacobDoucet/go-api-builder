@@ -1,0 +1,18 @@
+package {{ .Pkg }}
+
+import (
+    "github.com/google/uuid"
+    "time"
+)
+
+type By{{ .Name | tc }} struct {
+    {{- range .Object.IdentifierAttributes }}
+    {{ .Name | tc }} {{ .GoType }} `json:"{{ .Name }}"`
+    {{- end }}
+}
+
+type {{ .Name | tc }} struct {
+    {{- range .Object.Attributes }}
+    {{ .Name | tc }} {{ .GoType }} `json:"{{ .Name }}"`
+    {{- end }}
+}
