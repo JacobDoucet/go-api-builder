@@ -1,0 +1,90 @@
+{{- $name := .Name }}
+package {{ .Pkg }}
+
+import (
+    "context"
+    "net/http"
+    "eflux-go-cassandra/generated/api"
+    "eflux-go-cassandra/generated/model"
+	"github.com/google/uuid"
+    "github.com/gorilla/mux"
+    "encoding/json"
+	"strconv"
+    "strings"
+)
+
+func Select{{ $name | tc }}Handler(context context.Context) http.HandlerFunc {
+    return func(rw http.ResponseWriter, req *http.Request) {
+        query := model.By{{ $name | tc }}{}
+        options := api.SelectBy{{ $name | tc }}Options{}
+
+        vars := mux.Vars(req)
+        var err error
+        {{- range .Object.Identifier }}
+        {{ . | parseMuxVar }}
+        {{- end }}
+        reqQuery := req.URL.Query()
+        {{- range .TreeNode.Peers}}
+        options.Include{{ . | tc }} = strings.ToLower(reqQuery.Get("include{{ . | tc }}")) == "true"
+        {{- end }}
+        {{- range .TreeNode.Children}}
+        {{ . | tc }}Limit := reqQuery.Get("{{ . | tc }}s")
+        if {{ . | tc }}Limit != "" {
+            options.{{ . | tc }}s.Limit, err = strconv.Atoi({{ . | tc }}Limit)
+            if err != nil {
+                rw.WriteHeader(http.StatusBadRequest)
+                return
+            }
+        }
+        {{- end }}
+        var data api.{{ $name |tc }}Data
+        data, err = api.Select{{ $name | tc }}(context, query, options)
+        if err != nil {
+            rw.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+        rw.WriteHeader(http.StatusOK)
+        err = json.NewEncoder(rw).Encode(data)
+        if err != nil {
+            rw.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+    }
+}
+
+{{ range .TreeNode.Peers }}
+func Select{{ $name | tc }}By{{ . | tc }}Handler(context context.Context) http.HandlerFunc {
+    return func(rw http.ResponseWriter, req *http.Request) {
+        // query := &model.By{{ . | tc }}{}
+        // options := &api.Select{{ $name | tc }}By{{ . | tc }}Options{}
+    }
+}
+{{ end }}
+
+{{ range .TreeNode.Parents }}
+func Select{{ $name | tc }}sBy{{ . | tc }}Handler(context context.Context) http.HandlerFunc {
+    return func(rw http.ResponseWriter, req *http.Request) {
+        // query := &model.By{{ . | tc }}{}
+        // options := &api.SelectOptions{}
+    }
+}
+{{ end }}
+
+func Create{{ $name | tc }}Handler(context context.Context) http.HandlerFunc {
+    return func(rw http.ResponseWriter, req *http.Request) {
+
+    }
+}
+
+func Update{{ $name | tc }}Handler(context context.Context) http.HandlerFunc {
+    return func(rw http.ResponseWriter, req *http.Request) {
+
+    }
+}
+
+func Delete{{ $name | tc }}Handler(context context.Context) http.HandlerFunc {
+    return func(rw http.ResponseWriter, req *http.Request) {
+
+    }
+}
+

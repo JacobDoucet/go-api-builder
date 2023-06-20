@@ -5,6 +5,8 @@ import (
     "time"
 )
 
+const {{ .Name | tc }}Type = "{{ .Name }}"
+
 type By{{ .Name | tc }} struct {
     {{- range .Object.IdentifierAttributes }}
     {{ .Name | tc }} {{ .GoType }} `json:"{{ .Name }}"`

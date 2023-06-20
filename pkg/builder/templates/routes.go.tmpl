@@ -1,0 +1,20 @@
+package {{ .Pkg }}
+
+import (
+    "context"
+    "github.com/gorilla/mux"
+)
+
+func GetRouter(context context.Context) *mux.Router {
+    router := mux.NewRouter()
+    {{- range $objectName, $object := .Objects }} {{ $treeNode := $objectName | getTreeNode }}
+    router.Get("{{ $objectName }}{{ range $object.Identifier }}/{{ "{" }}{{ . }}{{ "}" }}{{ end }}").HandlerFunc(Select{{ $objectName | tc }}Handler(context))
+        {{- range $treeNode.Peers }} {{ $peerObject := . | getObject }}
+    router.Get("{{ . }}{{ range $peerObject.Identifier }}/{{ "{" }}{{ . }}{{ "}" }}{{ end }}/{{ $objectName }}").HandlerFunc(Select{{ $objectName | tc }}By{{ . | tc }}Handler(context))
+        {{- end }}
+        {{- range $treeNode.Children }}
+    router.Get("{{ $objectName }}{{ range $object.Identifier }}/{{ "{" }}{{ . }}{{ "}" }}{{ end }}/{{ . }}").HandlerFunc(Select{{ . | tc }}sBy{{ $objectName | tc }}Handler(context))
+        {{- end }}
+    {{ end }}
+    return router
+}

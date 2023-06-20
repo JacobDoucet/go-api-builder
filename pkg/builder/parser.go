@@ -59,8 +59,11 @@ func processModel(model Model) (_ Model, err error) {
 			return
 		}
 	}
-	for objectName := range model.Relations {
-		err = processRelations(objectName, model.Objects, model.Relations)
+	for name := range model.Objects {
+		err = processRelations(name, model.Objects, model.Relations)
+		if err != nil {
+			return
+		}
 	}
 	for name := range model.Objects {
 		err = processObjectAttributes(name, model.Objects, model.Attributes)
@@ -73,11 +76,6 @@ func processModel(model Model) (_ Model, err error) {
 
 func processObject(name string, objects map[string]Object, attributes map[string]Attribute) (err error) {
 	object := objects[name]
-	defer func() {
-		if err == nil {
-			objects[name] = object
-		}
-	}()
 	if object.Name == "" {
 		object.Name = name
 	}
@@ -96,6 +94,7 @@ func processObject(name string, objects map[string]Object, attributes map[string
 	if err != nil {
 		return err
 	}
+	objects[name] = object
 	return nil
 }
 
@@ -223,16 +222,18 @@ func createTree(
 ) (nodes map[string]TreeNode, err error) {
 	nodes = make(map[string]TreeNode)
 	for name := range objects {
+		object := objects[name]
 		nodes[name] = TreeNode{
 			nodes:      nodes,
 			objects:    make(map[string]Object),
 			attributes: make(map[string]Attribute),
-			Name:       name,
-			Identifier: objects[name].Identifier,
+			Name:       object.Name,
+			Identifier: object.Identifier,
 			Children:   make([]string, 0),
 			Peers:      make([]string, 0),
 		}
-		err = appendAttributes(objects[name], attributes, nodes[name].attributes)
+		nodes[name].objects[name] = object
+		err = appendAttributes(object, attributes, nodes[name].attributes)
 		if err != nil {
 			return
 		}
@@ -272,7 +273,6 @@ func createTree(
 		}
 		nodes[name] = node
 	}
-	printTree(nodes)
 	return
 }
 

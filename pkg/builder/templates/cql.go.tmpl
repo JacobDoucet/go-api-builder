@@ -6,25 +6,18 @@ import (
 )
 
 {{- range .TreeNode.Tables}}
-//go:embed scripts/create-{{ .Name }}.cql
+//go:embed scripts/create_{{ .Name | sc }}.cql
 var create{{ .Name | tc }}Script string
 {{- end}}
 
 type By{{ .Name | tc }} struct {
-    {{ .Name | tc }} model.{{ .Name | tc }}
+    {{ .Name | tc }} model.{{ .Name | tc }} `json:"{{ .Name }}"`
     {{- range .TreeNode.Peers }}
-    {{ . | tc }} *model.{{ . | tc }}
+    {{ . | tc }} *model.{{ . | tc }}  `json:"{{ . }},omitempty"`
     {{- end }}
     {{- range .TreeNode.Children }}
-    {{ . | tc }}s []model.{{ . | tc }}
+    {{ . | tc }}s []model.{{ . | tc }} `json:"{{ . }}s"`
     {{- end }}
-}
-
-func Create{{ .Name | tc }}Tables() error {
-    {{- range .TreeNode.Tables}}
-    println(create{{ .Name | tc }}Script)
-    {{- end}}
-    return nil
 }
 
 func Save{{ .Name | tc }}({{ .Name}} model.{{ .Name | tc }}) error {

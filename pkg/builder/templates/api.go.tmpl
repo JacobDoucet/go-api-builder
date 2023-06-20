@@ -1,1 +1,106 @@
+{{- $name := .Name }}
 package {{ .Pkg }}
+
+import (
+    "context"
+    "eflux-go-cassandra/generated/model"
+    "golang.org/x/sync/errgroup"
+)
+
+type {{ .Name | tc }}Data struct {
+    {{ .Name | tc }} model.{{ .Name | tc }} `json:"{{ .Name }}"`
+    {{- range .TreeNode.Peers }}
+    {{ . | tc }} *model.{{ . | tc }} `json:"{{ . }},omitempty"`
+    {{- end }}
+    {{- range .TreeNode.Children }}
+    {{ . | tc }}s []model.{{ . | tc }} `json:"{{ . }}s,omitempty"`
+    {{- end }}
+}
+func (d *{{ .Name | tc }}Data) Merge(data {{ .Name | tc }}Data) {
+    {{- range .TreeNode.Peers }}
+    if data.{{ . | tc }} != nil {
+        d.{{ . | tc }} = data.{{ . | tc }}
+    }
+    {{- end }}
+    {{- range .TreeNode.Children }}
+    if data.{{ . | tc }}s != nil {
+        d.{{ . | tc }}s = data.{{ . | tc }}s
+    }
+    {{- end }}
+}
+
+type SelectBy{{ .Name | tc }}Options struct {
+    {{- range .TreeNode.Peers }}
+    Include{{ . | tc }} bool `json:"include{{ . | tc }}"`
+    {{- end }}
+    {{- range .TreeNode.Children }}
+    {{ . | tc }}s SelectOptions `json:"{{ . }}s,omitempty"`
+    {{- end }}
+}
+func Select{{ .Name | tc }}(ctx context.Context, query model.By{{ .Name | tc }}, options SelectBy{{ .Name | tc }}Options) (data {{ .Name | tc }}Data, err error) {
+    g, ctx := errgroup.WithContext(ctx)
+
+    {{ .Name | tc }}Chan := make(chan {{ $name | tc }}Data)
+    g.Go(func() error {
+        defer close({{ .Name | tc }}Chan)
+        // TODO make query
+        {{ .Name | tc }}Chan <- {{ $name | tc }}Data{}
+        return nil
+    })
+
+    {{ range .TreeNode.Children }}
+    {{ . | tc }}sChan := make(chan {{ $name | tc }}Data)
+    g.Go(func() error {
+        defer close({{ . | tc }}sChan)
+        peerData, peerErr := Select{{ . | tc }}sBy{{ $name | tc }}(ctx, query, options.{{ . | tc }}s)
+        if peerErr != nil {
+            return peerErr
+        }
+        {{ . | tc }}sChan <- peerData
+        return nil
+    })
+    {{ end }}
+
+    if err = g.Wait(); err != nil {
+        return
+    }
+
+    {{- range .TreeNode.Children }}
+    data.Merge(<-{{ . | tc }}sChan)
+    {{- end }}
+
+    return
+}
+
+{{ range .TreeNode.Peers }}
+type Select{{ $name | tc }}By{{ . | tc }}Options struct {
+    Include{{ . | tc }} bool `json:"include{{ . | tc }}"`
+}
+func Select{{ $name | tc }}By{{ . | tc }}(ctx context.Context, query model.By{{ . | tc }}, options Select{{ $name | tc }}By{{ . | tc }}Options) (data {{ $name | tc }}Data, err error) {
+    var {{ . }}Data {{ . | tc }}Data
+    {{ . }}Data, err =  Select{{ . | tc }}(ctx, query, SelectBy{{ . | tc }}Options{
+        Include{{ $name | tc }}: true,
+    })
+    if err != nil {
+        return
+    }
+    if {{ . }}Data.{{ $name | tc }} != nil {
+        data.{{ $name | tc }} = *{{ . }}Data.{{ $name | tc }}
+    }
+    if options.Include{{ . | tc }} {
+        data.{{ . | tc }} = &{{ . }}Data.{{ . | tc }}
+    }
+    return
+}
+{{- end }}
+
+{{ range .TreeNode.Parents }}
+func Select{{ $name | tc }}sBy{{ . | tc }}(ctx context.Context, query model.By{{ . | tc }}, options SelectOptions) (data {{ . | tc }}Data, err error) {
+    if options.Limit < 1 {
+        return
+    }
+    // TODO
+    data.{{ $name | tc }}s = make([]model.{{ $name | tc }}, 0, options.Limit)
+    return
+}
+{{- end }}

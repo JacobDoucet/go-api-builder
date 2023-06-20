@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS {{ .Name | sc }}(
+    object_type text,
+    {{- range .Attributes }}
+    {{ .Name | sc }} {{ .CqlType }},
+    {{- end }}
+    PRIMARY KEY ({{ . | primaryKey }})
+)
