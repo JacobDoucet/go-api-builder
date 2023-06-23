@@ -21,6 +21,7 @@ type TreeNode struct {
 
 type Table struct {
 	Name          string
+	Keyspace      string
 	PartitionKey  []string
 	ClusteringKey []string
 	Attributes    []Attribute

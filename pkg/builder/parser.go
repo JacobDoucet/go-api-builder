@@ -35,7 +35,7 @@ func CreateTreeFrom(model Model) (nodes map[string]TreeNode, err error) {
 	if err != nil {
 		return
 	}
-	return createTree(model.Objects, model.Attributes, model.Relations)
+	return createTree(model)
 }
 
 func processModel(model Model) (_ Model, err error) {
@@ -216,10 +216,11 @@ func processAttribute(name string, _ map[string]Object, attributes map[string]At
 }
 
 func createTree(
-	objects map[string]Object,
-	attributes map[string]Attribute,
-	relations map[string]Relation,
+	model Model,
 ) (nodes map[string]TreeNode, err error) {
+	objects := model.Objects
+	relations := model.Relations
+	attributes := model.Attributes
 	nodes = make(map[string]TreeNode)
 	for name := range objects {
 		object := objects[name]
@@ -267,7 +268,7 @@ func createTree(
 	}
 	for name := range nodes {
 		node := nodes[name]
-		node.Tables, err = createTables(node)
+		node.Tables, err = createTables(model.Namespace, node)
 		if err != nil {
 			return
 		}
@@ -276,11 +277,12 @@ func createTree(
 	return
 }
 
-func createTables(treeNode TreeNode) ([]Table, error) {
+func createTables(namespace string, treeNode TreeNode) ([]Table, error) {
 	object := treeNode.objects[treeNode.Name]
 	tables := make([]Table, 0)
 
 	table := Table{
+		Keyspace:      namespace,
 		Name:          object.Name,
 		PartitionKey:  object.Identifier,
 		ClusteringKey: []string{"object_type"},
@@ -301,6 +303,7 @@ func createTables(treeNode TreeNode) ([]Table, error) {
 	for _, childName := range treeNode.Children {
 		child := treeNode.objects[childName]
 		childTable := Table{
+			Keyspace:      namespace,
 			Name:          child.Name + "_by_" + object.Name,
 			PartitionKey:  object.Identifier,
 			ClusteringKey: child.Identifier,

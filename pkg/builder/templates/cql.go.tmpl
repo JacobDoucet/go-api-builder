@@ -1,8 +1,13 @@
-package {{ .Pkg }}
+package {{ .Pkg }} {{ $name := .Name }}
 
 import (
+	"context"
     _ "embed"
+	"encoding/json"
+    "fmt"
     "eflux-go-cassandra/generated/model"
+    "github.com/gocql/gocql"
+	"golang.org/x/sync/errgroup"
 )
 
 {{- range .TreeNode.Tables}}
@@ -10,7 +15,13 @@ import (
 var create{{ .Name | tc }}Script string
 {{- end}}
 
-type By{{ .Name | tc }} struct {
+{{- range .TreeNode.Tables}}
+func CreateTable{{ .Name | tc }}(session *gocql.Session) error {
+    return session.Query(create{{ .Name | tc }}Script).Exec()
+}
+{{- end }}
+
+type By{{ $name | tc }} struct {
     {{ .Name | tc }} model.{{ .Name | tc }} `json:"{{ .Name }}"`
     {{- range .TreeNode.Peers }}
     {{ . | tc }} *model.{{ . | tc }}  `json:"{{ . }},omitempty"`
@@ -20,9 +31,24 @@ type By{{ .Name | tc }} struct {
     {{- end }}
 }
 
-func Save{{ .Name | tc }}({{ .Name}} model.{{ .Name | tc }}) error {
+func Save{{ $name | tc }}(ctx context.Context, session *gocql.Session, {{ $name }} model.{{ .Name | tc }}) error {
+    g, ctx := errgroup.WithContext(ctx)
     {{- range .TreeNode.Tables}}
-    println("save to {{ .Name }}")
+    g.Go(func() error {
+        // TODO
+        return nil
+    })
     {{- end}}
+    if err := g.Wait(); err != nil {
+        return err
+    }
     return nil
+}
+
+func get{{ $name | tc }}InsertStatement({{ $name }} model.{{ $name | tc }}) (string, error) {
+    jsonData, err := json.Marshal({{ $name }})
+    if err != nil {
+        return "", err
+    }
+    return fmt.Sprintf("INSERT INTO {{ $name | sc }} JSON '%s';", string(jsonData)), nil
 }

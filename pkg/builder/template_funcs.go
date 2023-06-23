@@ -79,6 +79,10 @@ func parseMuxVar(model Model) func(string) string {
 	}
 }
 
+func tableName(table Table) string {
+	return table.Keyspace + "." + toSnakeCase(table.Name)
+}
+
 func getTreeNode(nodes map[string]TreeNode) func(string) TreeNode {
 	return func(name string) TreeNode {
 		return nodes[name]
@@ -96,6 +100,7 @@ func getTemplateFuncs(model Model, nodes map[string]TreeNode) template.FuncMap {
 		"tc":          toTitlecase,
 		"sc":          toSnakeCase,
 		"primaryKey":  getPrimaryKey,
+		"tableName":   tableName,
 		"parseMuxVar": parseMuxVar(model),
 		"getTreeNode": getTreeNode(nodes),
 		"getObject":   getObject(model),

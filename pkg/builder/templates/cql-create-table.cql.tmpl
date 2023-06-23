@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS {{ .Name | sc }}(
+CREATE TABLE IF NOT EXISTS {{ . | tableName }}(
     object_type text,
     {{- range .Attributes }}
     {{ .Name | sc }} {{ .CqlType }},
